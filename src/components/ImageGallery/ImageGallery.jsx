@@ -4,6 +4,7 @@ import { Component } from 'react';
 import axios from 'axios';
 import Loader from '../Loader/Loader';
 import Modal from '../Modal/Modal';
+import Button from '../Button/Button';
 
 export default class ImageGallery extends Component {
   state = {
@@ -12,6 +13,7 @@ export default class ImageGallery extends Component {
     status: 'idle',
     selectedImage: null,
     showModal: false,
+    page: 1,
   };
 
   handleSelectImage = imageUrl => {
@@ -22,11 +24,16 @@ export default class ImageGallery extends Component {
     this.setState({ selectedImage: null });
   };
 
-  componentDidUpdate(prevProps) {
+  handleLoadMore = event => {
+    event.preventDefault();
+    this.setState(images => ({ page: images.page + 1 }));
+  };
+
+  componentDidUpdate(prevProps, prevState) {
     const prevName = prevProps.inputName;
     const nextName = this.props.inputName;
 
-    if (prevName !== nextName) {
+    if (prevName !== nextName || prevState.page !== this.state.page) {
       this.setState({ status: 'pending' });
 
       axios
@@ -37,7 +44,7 @@ export default class ImageGallery extends Component {
             image_type: 'photo',
             orientation: 'horizontal',
             per_page: 12,
-            page: this.page,
+            page: this.state.page,
           },
         })
         .then(response => {
@@ -54,7 +61,7 @@ export default class ImageGallery extends Component {
   }
 
   render() {
-    const { images, error, status } = this.state;
+    const { images, error, status, selectedImage } = this.state;
 
     if (status === 'idle') {
       return (
@@ -75,6 +82,8 @@ export default class ImageGallery extends Component {
     }
 
     if (status === 'resolved') {
+      const imagesLength = images.length;
+
       return (
         <>
           <ul className="ImageGallery">
@@ -83,9 +92,16 @@ export default class ImageGallery extends Component {
               onSelect={this.handleSelectImage}
             />
           </ul>
+
+          {imagesLength >= 12 && (
+            <div className="Button__container">
+              <Button handleLoadMore={this.handleLoadMore} />
+            </div>
+          )}
+
           {this.state.selectedImage && (
             <Modal
-              selectedImage={this.state.selectedImage}
+              selectedImage={selectedImage}
               handleCloseModal={this.handleCloseModal}
             />
           )}

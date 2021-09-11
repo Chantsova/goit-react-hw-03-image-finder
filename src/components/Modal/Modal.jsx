@@ -19,6 +19,12 @@ export default class Modal extends Component {
     }
   };
 
+  handleKeyDown = event => {
+    if (event.code === 'Escape') {
+      this.props.handleCloseModal();
+    }
+  };
+
   handleOverlayClick = event => {
     if (event.currentTarget === event.target) {
       this.props.handleCloseModal();
