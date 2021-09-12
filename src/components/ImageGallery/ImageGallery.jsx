@@ -14,6 +14,7 @@ export default class ImageGallery extends Component {
     selectedImage: null,
     showModal: false,
     page: 1,
+    totalHits: null,
   };
 
   handleSelectImage = imageUrl => {
@@ -25,7 +26,7 @@ export default class ImageGallery extends Component {
   };
 
   handleLoadMore = event => {
-    event.stopPropagation();
+    event.preventDefault();
     this.setState({ status: 'pending' });
     this.setState(images => ({ page: images.page + 1 }));
   };
@@ -36,6 +37,7 @@ export default class ImageGallery extends Component {
 
     if (prevName !== nextName) {
       this.setState({ page: 1 });
+      this.setState({ images: null });
       this.setState({ status: 'pending' });
       const page = this.state.page;
 
@@ -45,10 +47,21 @@ export default class ImageGallery extends Component {
     }
 
     if (prevState.page !== this.state.page) {
+      this.setState({ status: 'pending' });
       api(nextName, this.state.page)
-        .then(images => this.setState({ images, status: 'resolved' }))
+        .then(newImages =>
+          this.setState({
+            images: [...prevState.images, ...newImages],
+            status: 'resolved',
+          }),
+        )
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
+
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth',
+    });
   }
 
   render() {
@@ -87,9 +100,7 @@ export default class ImageGallery extends Component {
           </div>
 
           {imagesLength >= 12 && (
-            <div className="Button__container">
-              <Button handleLoadMore={this.handleLoadMore} />
-            </div>
+            <Button handleLoadMore={this.handleLoadMore} />
           )}
 
           {this.state.selectedImage && (
