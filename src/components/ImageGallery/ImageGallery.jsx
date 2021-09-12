@@ -1,10 +1,10 @@
 import './ImageGallery.css';
 import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
 import { Component } from 'react';
-import axios from 'axios';
 import Loader from '../Loader/Loader';
 import Modal from '../Modal/Modal';
 import Button from '../Button/Button';
+import api from '../api/api';
 
 export default class ImageGallery extends Component {
   state = {
@@ -25,7 +25,8 @@ export default class ImageGallery extends Component {
   };
 
   handleLoadMore = event => {
-    event.preventDefault();
+    event.stopPropagation();
+    this.setState({ status: 'pending' });
     this.setState(images => ({ page: images.page + 1 }));
   };
 
@@ -33,29 +34,19 @@ export default class ImageGallery extends Component {
     const prevName = prevProps.inputName;
     const nextName = this.props.inputName;
 
-    if (prevName !== nextName || prevState.page !== this.state.page) {
+    if (prevName !== nextName) {
+      this.setState({ page: 1 });
       this.setState({ status: 'pending' });
+      const page = this.state.page;
 
-      axios
-        .get('https://pixabay.com/api/', {
-          params: {
-            key: '22538110-4c245d53289541016fd72dadc',
-            q: nextName,
-            image_type: 'photo',
-            orientation: 'horizontal',
-            per_page: 12,
-            page: this.state.page,
-          },
-        })
-        .then(response => {
-          if (response.data.totalHits !== 0) {
-            const images = response.data.hits;
-            return this.setState({ images, status: 'resolved' });
-          }
-          return Promise.reject(
-            new Error(`There are no images with name "${nextName}"`),
-          );
-        })
+      api(nextName, page)
+        .then(images => this.setState({ images, status: 'resolved' }))
+        .catch(error => this.setState({ error, status: 'rejected' }));
+    }
+
+    if (prevState.page !== this.state.page) {
+      api(nextName, this.state.page)
+        .then(images => this.setState({ images, status: 'resolved' }))
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
   }
@@ -86,12 +77,14 @@ export default class ImageGallery extends Component {
 
       return (
         <>
-          <ul className="ImageGallery">
-            <ImageGalleryItem
-              images={images}
-              onSelect={this.handleSelectImage}
-            />
-          </ul>
+          <div>
+            <ul className="ImageGallery">
+              <ImageGalleryItem
+                images={images}
+                onSelect={this.handleSelectImage}
+              />
+            </ul>
+          </div>
 
           {imagesLength >= 12 && (
             <div className="Button__container">
