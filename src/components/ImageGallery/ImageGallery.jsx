@@ -78,6 +78,7 @@ export default class ImageGallery extends Component {
 
   render() {
     const { images, error, status, selectedImage } = this.state;
+    const totalPages = this.state.totalHits / 12 - this.state.page;
 
     return (
       <>
@@ -112,14 +113,18 @@ export default class ImageGallery extends Component {
               )}
             </ul>
 
-            {status === 'resolved' &&
-            this.state.totalHits / 12 - this.state.page > 0 ? (
-              <Button handleLoadMore={this.handleLoadMore} />
+            {this.state.totalHits > 12 && totalPages > 0 ? (
+              status === 'resolved' ? (
+                <Button handleLoadMore={this.handleLoadMore} />
+              ) : (
+                <div className="loader">
+                  <Loader />
+                </div>
+              )
             ) : (
-              <div className="loader">
-                <Loader />
-              </div>
+              <div></div>
             )}
+
             {this.state.selectedImage && (
               <Modal
                 selectedImage={selectedImage}
