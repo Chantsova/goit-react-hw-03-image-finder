@@ -37,24 +37,32 @@ export default class ImageGallery extends Component {
 
     if (prevName !== nextName) {
       this.setState({ page: 1 });
-      this.setState({ images: null });
+      this.setState({ images: [] });
       this.setState({ status: 'pending' });
-      const page = this.state.page;
 
-      api(nextName, page)
-        .then(images => this.setState({ images, status: 'resolved' }))
+      api(nextName, 1)
+        .then(result => {
+          const images = result.images;
+          const totalHits = result.totalHits;
+          this.setState({
+            images: images,
+            totalHits: totalHits,
+            status: 'resolved',
+          });
+        })
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
 
     if (prevState.page !== this.state.page) {
       this.setState({ status: 'pending' });
-      api(nextName, this.state.page)
-        .then(newImages =>
+      api(prevName, this.state.page)
+        .then(newResult => {
+          const newImages = newResult.images;
           this.setState({
             images: [...prevState.images, ...newImages],
             status: 'resolved',
-          }),
-        )
+          });
+        })
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
 
@@ -67,50 +75,56 @@ export default class ImageGallery extends Component {
   render() {
     const { images, error, status, selectedImage } = this.state;
 
-    if (status === 'idle') {
-      return (
-        <div className="notification">Please, input your searching value.</div>
-      );
-    }
+    return (
+      <>
+        {this.state.images === null && (
+          <div>
+            {status === 'idle' && (
+              <div className="notification">
+                Please, input your searching value.
+              </div>
+            )}
+            {status === 'pending' ? (
+              <div className="loader">
+                <Loader />
+              </div>
+            ) : (
+              <div></div>
+            )}
+            {status === 'rejected' && (
+              <h1 className="error">{error.message}</h1>
+            )}
+          </div>
+        )}
 
-    if (status === 'pending') {
-      return (
-        <div className="loader">
-          <Loader />
-        </div>
-      );
-    }
-
-    if (status === 'rejected') {
-      return <h1 className="error">{error.message}</h1>;
-    }
-
-    if (status === 'resolved') {
-      const imagesLength = images.length;
-
-      return (
-        <>
+        {this.state.images !== null && (
           <div>
             <ul className="ImageGallery">
-              <ImageGalleryItem
-                images={images}
-                onSelect={this.handleSelectImage}
-              />
+              {status === 'resolved' && (
+                <ImageGalleryItem
+                  images={images}
+                  onSelect={this.handleSelectImage}
+                />
+              )}
             </ul>
+
+            {status === 'resolved' &&
+            this.state.totalHits / 12 - this.state.page > 0 ? (
+              <Button handleLoadMore={this.handleLoadMore} />
+            ) : (
+              <div className="loader">
+                <Loader />
+              </div>
+            )}
+            {this.state.selectedImage && (
+              <Modal
+                selectedImage={selectedImage}
+                handleCloseModal={this.handleCloseModal}
+              />
+            )}
           </div>
-
-          {imagesLength >= 12 && (
-            <Button handleLoadMore={this.handleLoadMore} />
-          )}
-
-          {this.state.selectedImage && (
-            <Modal
-              selectedImage={selectedImage}
-              handleCloseModal={this.handleCloseModal}
-            />
-          )}
-        </>
-      );
-    }
+        )}
+      </>
+    );
   }
 }

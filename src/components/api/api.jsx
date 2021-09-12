@@ -1,4 +1,5 @@
 import axios from 'axios';
+import PropTypes from 'prop-types';
 
 const getImagesAPI = (name, page) => {
   return axios
@@ -14,8 +15,11 @@ const getImagesAPI = (name, page) => {
     })
     .then(response => {
       if (response.data.totalHits !== 0) {
-        const images = response.data.hits;
-        return images;
+        const result = {
+          images: response.data.hits,
+          totalHits: response.data.totalHits,
+        };
+        return result;
       }
       return Promise.reject(
         new Error(`There are no images with name "${name}"`),
@@ -24,3 +28,7 @@ const getImagesAPI = (name, page) => {
 };
 
 export default getImagesAPI;
+
+getImagesAPI.propTypes = {
+  page: PropTypes.number.isRequired,
+};
