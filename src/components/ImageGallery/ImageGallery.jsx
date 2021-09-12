@@ -25,10 +25,9 @@ export default class ImageGallery extends Component {
     this.setState({ selectedImage: null });
   };
 
-  handleLoadMore = event => {
-    event.preventDefault();
+  handleLoadMore = prevState => {
     this.setState({ status: 'pending' });
-    this.setState(images => ({ page: images.page + 1 }));
+    this.setState(prevState => ({ page: prevState.page + 1 }));
   };
 
   componentDidUpdate(prevProps, prevState) {
@@ -36,9 +35,11 @@ export default class ImageGallery extends Component {
     const nextName = this.props.inputName;
 
     if (prevName !== nextName) {
-      this.setState({ page: 1 });
-      this.setState({ images: [] });
-      this.setState({ status: 'pending' });
+      this.setState({
+        status: 'pending',
+        page: 1,
+        images: null,
+      });
 
       api(nextName, 1)
         .then(result => {
@@ -53,9 +54,12 @@ export default class ImageGallery extends Component {
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
 
-    if (prevState.page !== this.state.page) {
-      this.setState({ status: 'pending' });
-      api(prevName, this.state.page)
+    if (
+      prevState.page !== this.state.page &&
+      this.state.page !== 1 &&
+      prevName === nextName
+    ) {
+      api(nextName, this.state.page)
         .then(newResult => {
           const newImages = newResult.images;
           this.setState({
