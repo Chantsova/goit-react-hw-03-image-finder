@@ -12,9 +12,10 @@ export default class ImageGallery extends Component {
     error: null,
     status: 'idle',
     selectedImage: null,
-    showModal: false,
     page: 1,
     totalHits: null,
+    newImages: null,
+    onLoading: false,
   };
 
   handleSelectImage = imageUrl => {
@@ -25,10 +26,20 @@ export default class ImageGallery extends Component {
     this.setState({ selectedImage: null });
   };
 
-  handleLoadMore = prevState => {
-    this.setState({ status: 'pending' });
+  handleLoadMore = () => {
     this.setState(prevState => ({ page: prevState.page + 1 }));
   };
+
+  handleOnClickLoader = () => {
+    this.setState({ onLoading: true });
+  };
+
+  smoothScroll() {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth',
+    });
+  }
 
   componentDidUpdate(prevProps, prevState) {
     const prevName = prevProps.inputName;
@@ -39,6 +50,7 @@ export default class ImageGallery extends Component {
         status: 'pending',
         page: 1,
         images: null,
+        newImages: null,
       });
 
       api(nextName, 1)
@@ -49,6 +61,7 @@ export default class ImageGallery extends Component {
             images: images,
             totalHits: totalHits,
             status: 'resolved',
+            newImages: images.length,
           });
         })
         .catch(error => this.setState({ error, status: 'rejected' }));
@@ -59,79 +72,64 @@ export default class ImageGallery extends Component {
       this.state.page !== 1 &&
       prevName === nextName
     ) {
+      this.setState({
+        newImages: null,
+      });
+
       api(nextName, this.state.page)
         .then(newResult => {
           const newImages = newResult.images;
           this.setState({
             images: [...prevState.images, ...newImages],
             status: 'resolved',
+            newImages: newImages.length,
+            onLoading: false,
           });
         })
+        .then(this.smoothScroll)
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
-
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: 'smooth',
-    });
   }
 
   render() {
-    const { images, error, status, selectedImage } = this.state;
-    const totalPages = this.state.totalHits / 12 - this.state.page;
-
+    const { images, status, selectedImage, onLoading, newImages } = this.state;
     return (
       <>
-        {this.state.images === null && (
-          <div>
-            {status === 'idle' && (
-              <div className="notification">
-                Please, input your searching value.
-              </div>
-            )}
-            {status === 'pending' ? (
-              <div className="loader">
-                <Loader />
-              </div>
-            ) : (
-              <div></div>
-            )}
-            {status === 'rejected' && (
-              <h1 className="error">{error.message}</h1>
-            )}
-          </div>
-        )}
-
-        {this.state.images !== null && (
-          <div>
+        <div>
+          {' '}
+          {status === 'pending' && (
+            <div className="loader">
+              <Loader />
+            </div>
+          )}
+          {this.state.status === 'rejected' && (
+            <h1 className="error">{this.state.error.message}</h1>
+          )}
+          {status === 'resolved' && (
             <ul className="ImageGallery">
-              {status === 'resolved' && (
-                <ImageGalleryItem
-                  images={images}
-                  onSelect={this.handleSelectImage}
-                />
-              )}
-            </ul>
-
-            {this.state.totalHits > 12 && totalPages > 0 ? (
-              status === 'resolved' ? (
-                <Button handleLoadMore={this.handleLoadMore} />
-              ) : (
-                <div className="loader">
-                  <Loader />
-                </div>
-              )
-            ) : (
-              <div></div>
-            )}
-
-            {this.state.selectedImage && (
-              <Modal
-                selectedImage={selectedImage}
-                handleCloseModal={this.handleCloseModal}
+              <ImageGalleryItem
+                images={images}
+                onSelect={this.handleSelectImage}
               />
-            )}
-          </div>
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <Button
+            handleLoadMore={this.handleLoadMore}
+            handleOnClickLoader={this.handleOnClickLoader}
+            onLoading={onLoading}
+            status={status}
+            newImages={newImages}
+          />
+        </div>
+
+        {this.state.selectedImage && (
+          <Modal
+            selectedImage={selectedImage}
+            handleCloseModal={this.handleCloseModal}
+          />
         )}
       </>
     );
