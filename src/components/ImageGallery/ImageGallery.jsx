@@ -13,7 +13,6 @@ export default class ImageGallery extends Component {
     status: 'idle',
     selectedImage: null,
     page: 1,
-    totalHits: null,
     newImages: null,
     onLoading: false,
   };
@@ -28,9 +27,6 @@ export default class ImageGallery extends Component {
 
   handleLoadMore = () => {
     this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
-
-  handleOnClickLoader = () => {
     this.setState({ onLoading: true });
   };
 
@@ -54,12 +50,9 @@ export default class ImageGallery extends Component {
       });
 
       api(nextName, 1)
-        .then(result => {
-          const images = result.images;
-          const totalHits = result.totalHits;
+        .then(images => {
           this.setState({
             images: images,
-            totalHits: totalHits,
             status: 'resolved',
             newImages: images.length,
           });
@@ -67,22 +60,17 @@ export default class ImageGallery extends Component {
         .catch(error => this.setState({ error, status: 'rejected' }));
     }
 
-    if (
-      prevState.page !== this.state.page &&
-      this.state.page !== 1 &&
-      prevName === nextName
-    ) {
+    if (prevState.page !== this.state.page && this.state.page !== 1) {
       this.setState({
         newImages: null,
       });
 
       api(nextName, this.state.page)
-        .then(newResult => {
-          const newImages = newResult.images;
+        .then(images => {
           this.setState({
-            images: [...prevState.images, ...newImages],
+            images: [...prevState.images, ...images],
             status: 'resolved',
-            newImages: newImages.length,
+            newImages: images.length,
             onLoading: false,
           });
         })
@@ -95,37 +83,31 @@ export default class ImageGallery extends Component {
     const { images, status, selectedImage, onLoading, newImages } = this.state;
     return (
       <>
-        <div>
-          {' '}
-          {status === 'pending' && (
-            <div className="loader">
-              <Loader />
-            </div>
-          )}
-          {this.state.status === 'rejected' && (
-            <h1 className="error">{this.state.error.message}</h1>
-          )}
-          {status === 'resolved' && (
-            <ul className="ImageGallery">
-              <ImageGalleryItem
-                images={images}
-                onSelect={this.handleSelectImage}
-              />
-            </ul>
-          )}
-        </div>
+        {status === 'pending' && (
+          <div className="loader">
+            <Loader />
+          </div>
+        )}
+        {status === 'rejected' && (
+          <h1 className="error">{this.state.error.message}</h1>
+        )}
+        {status === 'resolved' && (
+          <ul className="ImageGallery">
+            <ImageGalleryItem
+              images={images}
+              onSelect={this.handleSelectImage}
+            />
+          </ul>
+        )}
 
-        <div>
-          <Button
-            handleLoadMore={this.handleLoadMore}
-            handleOnClickLoader={this.handleOnClickLoader}
-            onLoading={onLoading}
-            status={status}
-            newImages={newImages}
-          />
-        </div>
+        <Button
+          handleLoadMore={this.handleLoadMore}
+          onLoading={onLoading}
+          status={status}
+          newImages={newImages}
+        />
 
-        {this.state.selectedImage && (
+        {selectedImage && (
           <Modal
             selectedImage={selectedImage}
             handleCloseModal={this.handleCloseModal}
